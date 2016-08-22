@@ -3,20 +3,35 @@ import pandas as pd
 from sklearn import tree
 
 
-
 ## Funktion zum Aufrufen uber python und ausgeben der Regeln
 def extract_rules(tree, classes, features, dtrain, ttrain,
                   regel=None):
-    rules_box=[]
+    '''
+    This function returns the the rules of the Decision Tree.
+    :param tree: decision Tree
+    :param classes: list of classes the decision tree points on.
+    :param features: list of name of features (same lengh as columns in Data)
+    :param dtrain: dataset the decisionTree got (Data)
+    :param ttrain: dataset the decisionTree got (Target)
+    :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules are printed
+
+    you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
+    '''
+    
+    rules_box = []
     list_leaf = extract_leafs(tree, classes, regel)
     for leaf in list_leaf:
         tree_path, valu = buildtree(tree, leaf)
         dist = get_dist(tree_path, dtrain, ttrain, classes)
         text = print_tree(tree_path, features, classes, dist, regel)
         print('--------------------------------------------------------\n')
+        rules_box = rules_box.append('--------------------------------------------------------\n')
         print(text)
-        rules_box=rules_box.append(text)
+        rules_box = rules_box.append(text)
     return
+
+
+# returns the parent leaf and the value if left or right bought is used
 def parent(child_left, child_right, actual):
     if actual in child_left:
         for idx, i in enumerate(child_left):
@@ -91,11 +106,10 @@ def get_dist(tree_path, ddata, tdata, classes):
             continue
         else:
             dist_temp = np.delete(dist_temp, -1, 1)
-            convert dist_temp to pandas
-            uniq = unique_rows(dist_temp)
+            dist_temp_pd = pd.DataFrame(dist_temp)  # transform to a pandas Dataframe
+            uniq = dist_temp_pd.drop_duplicates()  # deletes the duplicates to get the uniqes
             dist = np.append(dist, [[i, dist_temp.shape[0], uniq]], axis=0)
     return dist
-
 
 
 ##Ausgabe des Baumes
@@ -104,17 +118,14 @@ def print_tree(tree_path, feature, classes, dist, dist_zusatz=None, regel=None):
     text = ['Class: ' + str(classes[tree_path.feature[0]]) + '\n' + '\n']
     for i in range(tree_path.shape[0] - 1, 0, -1):
         if tree_path.true_false[i]:
-			text.append('If ' + str(feature[tree_path.feature[i]]) + ' <= ' + str(tree_path.bedingung[i]) + '\n')
+            text.append('If ' + str(feature[tree_path.feature[i]]) + ' <= ' + str(tree_path.bedingung[i]) + '\n')
         else:
-        	text.append( 'If ' + str(feature[tree_path.feature[i]]) + ' > ' + str(tree_path.bedingung[i]) + '\n')
+            text.append('If ' + str(feature[tree_path.feature[i]]) + ' > ' + str(tree_path.bedingung[i]) + '\n')
     text.append('\n Distribution:\n')
     for i in range(dist.shape[0]):
         if regel != None and dist[i, 0] == regel:
-            text.append('<p style="color:#ff0000">' + dist[i, 0] + ':\t' + dist[i, 1] + ', ' + dist[i, 2] + '</p>\n')
+            text.append(dist[i, 0] + ':\t' + dist[i, 1] + ', ' + dist[i, 2] + '\n')
         else:
             text.append(dist[i, 0] + ':\t' + dist[i, 1] + ', ' + dist[i, 2] + '\n')
     text.append('\n')
     return ''.join(text)
-
-
-
