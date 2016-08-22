@@ -13,7 +13,8 @@ def extract_rules(tree_given, classes, features, dtrain, ttrain,
     :param features: list of name of features (same lengh as columns in Data)
     :param dtrain: dataset the decisionTree got (Data)
     :param ttrain: dataset the decisionTree got (Target)
-    :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules are printed
+    :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules
+    are printed
 
     you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
     """
@@ -46,19 +47,19 @@ def _parent(child_left, child_right, actual):
     return newvalue, tr_fl
 
 
-# erstellen der Grundstruktur der Regeln
+# returns the basis structure of the rules
 def _buildtree(tree_given, start):
     child_left = tree_given.tree_.children_left
     child_right = tree_given.tree_.children_right
     features = tree_given.tree_.feature
     treshold = tree_given.tree_.threshold
-    # feature von anfangszahl ist die endklasse
+    # number of the feature of the first node is the class of the rule
     class_number = np.argmax(tree_given.tree_.value[start])
     tree_path = pd.DataFrame([[start, class_number, np.NaN, -5]],
                              columns=['node', 'feature', 'condition', 'true_false'])
     node = start
-    while node != 0:
-        node, tr_fl = _parent(child_left, child_right, node)
+    while node != 0:  # going backwards in the tree to the beginning of the tree
+        node, tr_fl = _parent(child_left, child_right, node)  # get the parent_leaf
         node_temp = node
         name_temp = features[node]
         condition_temp = treshold[node]
@@ -71,37 +72,38 @@ def _buildtree(tree_given, start):
     return tree_path, tree_given.tree_.value[start]
 
 
-# Filter fur die Blatter:
-def _extract_leafs(tree_given, classes, regel):
+# returns all leafs which are in the class(rule), if rule is None all rules for all classes are returned
+def _extract_leafs(tree_given, classes, rule):
     features = tree_given.tree_.feature
     list_leafs = []
     list_leafs_end = []
     for idx, i in enumerate(features):
         if i == -2:
             list_leafs.append(idx)
-    if regel != None:
+    if rule is not None:
         for i in list_leafs:
-            if regel == classes[np.argmax(tree_given.tree_.value[i])]:
+            if rule == classes[np.argmax(tree_given.tree_.value[i])]:
                 list_leafs_end.append(i)
     else:
         list_leafs_end = list_leafs
     return list_leafs_end
 
 
-# erstellen der Distribution für den Datensatz mit dem auch der Tree erstellt wurde
+# returns the distribution of the rule
 def _get_dist(tree_path, ddata, tdata, classes):
     dist = [['Class', 'Elements', 'Uniques']]
-    tdata = np.array([tdata]).T
+    tdata = np.array([tdata]).T  # concate the ddata and tdata
     data_ges = np.append(ddata, tdata, axis=1)
-    for i in range(tree_path.shape[0]):
+    for i in range(tree_path.shape[0]):  # going through all features
         if tree_path.true_false[i] == -5:
-            continue
+            continue  # continue if the leaf is the last one so there is no feature with value
         if tree_path.true_false[i]:
-            data_ges = data_ges[data_ges[:, tree_path.feature[i]] <= tree_path.condition[i]]
+            data_ges = data_ges[data_ges[:, tree_path.feature[i]] <= tree_path.condition[
+                i]]  # delete all rows which not fullfill the criterion
         else:
             data_ges = data_ges[data_ges[:, tree_path.feature[i]] > tree_path.condition[i]]
-    for i in classes:
-        dist_temp = data_ges[data_ges[:, -1] == i]
+    for i in classes:  # going through all classes
+        dist_temp = data_ges[data_ges[:, -1] == i]  # delete if the row is not in the class
         if dist_temp.shape[0] == 0:
             continue
         else:
@@ -112,8 +114,7 @@ def _get_dist(tree_path, ddata, tdata, classes):
     return dist
 
 
-# Ausgabe des Baumes
-
+# returns a string of the rule and distribution
 def _print_tree(tree_path, feature, classes, dist):
     text = ['Class: ' + str(classes[tree_path.feature[0]]) + '\n' + '\n']
     for i in range(tree_path.shape[0] - 1, 0, -1):
