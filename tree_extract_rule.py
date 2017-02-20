@@ -4,32 +4,37 @@ from sklearn import tree
 
 
 # Funktion zum Aufrufen uber python und ausgeben der Regeln
-def extract_rules(tree_given, classes, features, dtrain, ttrain,
+def extract_rules(tree_given, features, dtrain, ttrain,
                   regel=None):
     """
     This function returns the the rules of the Decision Tree.
     :param tree_given: decision Tree
-    :param classes: list of classes the decision tree points on.
-    :param features: list of name of features (same lengh as columns in Data)
-    :param dtrain: dataset the decisionTree got (Data)
-    :param ttrain: dataset the decisionTree got (Target)
+    :param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features
+    :param dtrain: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)
+    :param ttrain: dataset the decisionTree got (Target) (can be test or train data) (important: Type: Dataframe)
     :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules
     are printed
-
     you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
     """
 
-    rules_box = []
-    list_leaf = _extract_leafs(tree_given, classes, regel)
-    for leaf in list_leaf:
+    if not isinstance(dtrain, pd.DataFrame):
+        print('dtrain ist kein Dataframe')
+    if not isinstance(ttrain, pd.Series):
+        print('ttrain ist keine Serie ')
+
+    # features = dtrain.columns
+    return_dict = {}
+    list_leaf = _extract_leafs(tree_given, tree_given.classes_, regel)
+    for count, leaf in enumerate(list_leaf):
         tree_path, valu = _buildtree(tree_given, leaf)
-        dist = _get_dist(tree_path, dtrain, ttrain, classes)
-        text = _print_tree(tree_path, features, classes, dist)
-        print('-' * 50 + '\n')
-        rules_box.extend('-' * 50 + '\n')
-        print(text)
-        rules_box.extend(text)
-    return
+        dist = _get_dist(tree_path, features, dtrain, ttrain, tree_given.classes_)
+        dict_temp = _print_tree(tree_path, features, tree_given.classes_, dist, ttrain)
+        dict_temp = {count: dict_temp}
+        tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
+        tree_classes_list = tree_given.classes_.tolist()
+        dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
+        return_dict.update(dict_temp)
+    return return_dict
 
 
 # returns the parent leaf and the value if left or right bought is used
@@ -60,11 +65,9 @@ def _buildtree(tree_given, start):
     node = start
     while node != 0:  # going backwards in the tree to the beginning of the tree
         node, tr_fl = _parent(child_left, child_right, node)  # get the parent_leaf
-        node_temp = node
-        name_temp = features[node]
-        condition_temp = treshold[node]
-        tr_fl_temp = tr_fl
-        tree_temp = pd.DataFrame([[node_temp, name_temp, condition_temp, tr_fl_temp]],
+        feature = features[node]
+        condition = treshold[node]
+        tree_temp = pd.DataFrame([[node, feature, condition, tr_fl]],
                                  columns=['node', 'feature', 'condition', 'true_false'])
         tree_path = tree_path.append(tree_temp, ignore_index=True)
 
@@ -89,42 +92,66 @@ def _extract_leafs(tree_given, classes, rule):
     return list_leafs_end
 
 
-# returns the distribution of the rule
-def _get_dist(tree_path, ddata, tdata, classes):
+# returns the distribution of the rule  mit Panda!!!!
+def _get_dist(tree_path, feature_liste, ddata, tdata, classes):
     dist = [['Class', 'Elements', 'Uniques']]
-    tdata = np.array([tdata]).T  # concate the ddata and tdata
-    data_ges = np.append(ddata, tdata, axis=1)
+    data_ges = pd.concat([ddata, tdata], axis=1)
     for i in range(tree_path.shape[0]):  # going through all features
         if tree_path.true_false[i] == -5:
             continue  # continue if the leaf is the last one so there is no feature with value
         if tree_path.true_false[i]:
-            data_ges = data_ges[data_ges[:, tree_path.feature[i]] <= tree_path.condition[
+            data_ges = data_ges[data_ges[feature_liste[tree_path.feature[i]]] <= tree_path.condition[
                 i]]  # delete all rows which not fullfill the criterion
         else:
-            data_ges = data_ges[data_ges[:, tree_path.feature[i]] > tree_path.condition[i]]
+            data_ges = data_ges[data_ges[feature_liste[tree_path.feature[i]]] > tree_path.condition[i]]
     for i in classes:  # going through all classes
-        dist_temp = data_ges[data_ges[:, -1] == i]  # delete if the row is not in the class
+        dist_temp = data_ges[data_ges[tdata.name] == i]  # delete if the row is not in the class
         if dist_temp.shape[0] == 0:
-            continue
+            dist = np.append(dist, [[i, 0, 0]], axis=0)
         else:
-            dist_temp = np.delete(dist_temp, -1, 1)
-            dist_temp_pd = pd.DataFrame(dist_temp)  # transform to a pandas Dataframe
-            uniq = dist_temp_pd.drop_duplicates()  # deletes the duplicates to get the uniqes
+            dist_temp = dist_temp.drop(tdata.name, 1)
+            uniq = dist_temp.drop_duplicates()  # deletes the duplicates to get the uniqes
             dist = np.append(dist, [[i, dist_temp.shape[0], uniq.shape[0]]], axis=0)
     return dist
 
 
 # returns a string of the rule and distribution
-def _print_tree(tree_path, feature, classes, dist):
-    text = ['Class: ' + str(classes[tree_path.feature[0]]) + '\n' + '\n']
+def _print_tree(tree_path, feature, classes, dist, ttrain):
+    rule = []
     for i in range(tree_path.shape[0] - 1, 0, -1):
         if tree_path.true_false[i]:
-            text.append('If ' + str(feature[tree_path.feature[i]]) + ' <= ' + str(tree_path.condition[i]) + '\n')
+            rule.append('If ' + str(feature[tree_path.feature[i]]) + ' <= ' + str(tree_path.condition[i]) + '\n')
         else:
-            text.append('If ' + str(feature[tree_path.feature[i]]) + ' > ' + str(tree_path.condition[i]) + '\n')
-    text.append('\n Distribution:\n')
-    for i in range(dist.shape[0]):
-        text.append(dist[i, 0] + ':\t' + str(dist[i, 1]) + ', ' + str(dist[i, 2]) + '\n')
+            rule.append('If ' + str(feature[tree_path.feature[i]]) + ' > ' + str(tree_path.condition[i]) + '\n')
+    rule = ''.join(rule)
 
-    text.append('\n')
-    return ''.join(text)
+    dist_dict = {}
+    for count, element in enumerate(classes):
+        count += 1  # weil dist[0,1]= Ueberschrift
+        dist_dict.update({element: dist[count, 1]})
+
+    # precision
+    rule_class = classes[tree_path.feature[0]]
+    data_sum = np.sum([int(i) for i in dist[1:, 1]])
+    data_class = np.NaN
+    for i in dist:
+        if str(i[0]) == str(rule_class):
+            data_class = i[1]
+    if data_sum == 0:
+        precision = -1
+    else:
+        precision = float(data_class) / float(data_sum)
+
+    # recall
+    ttrain_regel = len([i for i in ttrain if i == classes[
+        tree_path.feature[0]]])  # deletes all rows, which are not of the wanted (rule) class
+    recall = 'Error'
+    for i in range(dist.shape[0]):
+        if str(dist[i, 0]) == str(rule_class):
+            if ttrain_regel == 0:
+                recall = -1
+            else:
+                recall = float(dist[i, 1]) / float(ttrain_regel)
+
+    return {'rule': rule, 'targetclass': classes[tree_path.feature[0]], 'class_dist': dist_dict, 'precision': precision,
+            'recall': recall}
