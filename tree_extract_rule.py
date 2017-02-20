@@ -95,7 +95,7 @@ def _extract_leafs(tree_given, classes, rule):
 
 # returns the distribution of the rule  mit Panda!!!!
 def _get_dist(tree_path, feature_liste, ddata, tdata, classes):
-    dist = [['Class', 'Elements', 'Uniques']]
+    dist = pd.DataFrame(columns=['elements', 'uniques']) #index= class
     data_ges = pd.concat([ddata, tdata], axis=1)
     for i in range(tree_path.shape[0]):  # going through all features
         if tree_path.true_false[i] == -5:
@@ -108,11 +108,11 @@ def _get_dist(tree_path, feature_liste, ddata, tdata, classes):
     for i in classes:  # going through all classes
         dist_temp = data_ges[data_ges[tdata.name] == i]  # delete if the row is not in the class
         if dist_temp.shape[0] == 0:
-            dist = np.append(dist, [[i, 0, 0]], axis=0)
+            dist.loc[i] = [0, 0]
         else:
             dist_temp = dist_temp.drop(tdata.name, 1)
             uniq = dist_temp.drop_duplicates()  # deletes the duplicates to get the uniqes
-            dist = np.append(dist, [[i, dist_temp.shape[0], uniq.shape[0]]], axis=0)
+            dist.loc[i] = [dist_temp.shape[0], uniq.shape[0]]
     return dist
 
 
@@ -127,17 +127,16 @@ def _print_tree(tree_path, feature, classes, dist, ttrain):
     rule = ''.join(rule)
 
     dist_dict = {}
-    for count, element in enumerate(classes):
-        count += 1  # weil dist[0,1]= Ueberschrift
-        dist_dict.update({element: dist[count, 1]})
+    for cl in classes:
+        dist_dict.update({cl: dist.loc[cl, 'elements']})
 
     # precision
     rule_class = classes[tree_path.feature[0]]
-    data_sum = np.sum([int(i) for i in dist[1:, 1]])
+    data_sum = dist['elements'].sum()
     data_class = np.NaN
-    for i in dist:
-        if str(i[0]) == str(rule_class):
-            data_class = i[1]
+    for i in dist.index:
+        if i == str(rule_class):
+            data_class = dist['elements'][i]
     if data_sum == 0:
         precision = -1
     else:
@@ -147,12 +146,12 @@ def _print_tree(tree_path, feature, classes, dist, ttrain):
     ttrain_regel = len([i for i in ttrain if i == classes[
         tree_path.feature[0]]])  # deletes all rows, which are not of the wanted (rule) class
     recall = 'Error'
-    for i in range(dist.shape[0]):
-        if str(dist[i, 0]) == str(rule_class):
+    for i in dist.index:
+        if i == str(rule_class):
             if ttrain_regel == 0:
                 recall = -1
             else:
-                recall = float(dist[i, 1]) / float(ttrain_regel)
+                recall = float(dist['elements'][i]) / float(ttrain_regel)
 
     return {'rule': rule, 'targetclass': classes[tree_path.feature[0]], 'class_dist': dist_dict, 'precision': precision,
             'recall': recall}
