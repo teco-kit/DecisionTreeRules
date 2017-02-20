@@ -4,35 +4,36 @@ from sklearn import tree
 
 
 # Funktion zum Aufrufen uber python und ausgeben der Regeln
-def extract_rules(tree_given, features, dtrain, ttrain,
+def extract_rules(tree_given, features, dataset, target_dataset,
                   regel=None):
     """
     This function returns the the rules of the Decision Tree.
     :param tree_given: decision Tree
     :param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features
-    :param dtrain: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)
-    :param ttrain: dataset the decisionTree got (Target) (can be test or train data) (important: Type: Dataframe)
+    :param dataset: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)
+    :param target_dataset: dataset the decisionTree got (Target) (can be test or train data) (important: Type: Dataframe)
     :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules
     are printed
     you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
     """
 
-    if not isinstance(dtrain, pd.DataFrame):
-        print('dtrain ist kein Dataframe')
-    if not isinstance(ttrain, pd.Series):
-        print('ttrain ist keine Serie ')
+    if not isinstance(dataset, pd.DataFrame):
+        raise Exception("dtrain has to be a Dataframe")
+
+    if not isinstance(target_dataset, pd.Series):
+        raise Exception("ttrain has to be a Dataframe")
 
     # features = dtrain.columns
     return_dict = {}
     list_leaf = _extract_leafs(tree_given, tree_given.classes_, regel)
     for count, leaf in enumerate(list_leaf):
-        tree_path, valu = _buildtree(tree_given, leaf)
-        dist = _get_dist(tree_path, features, dtrain, ttrain, tree_given.classes_)
-        dict_temp = _print_tree(tree_path, features, tree_given.classes_, dist, ttrain)
+        tree_path = _buildtree(tree_given, leaf)
+        dist = _get_dist(tree_path, features, dataset, target_dataset, tree_given.classes_)
+        dict_temp = _print_tree(tree_path, features, tree_given.classes_, dist, target_dataset)
         dict_temp = {count: dict_temp}
-        tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
-        tree_classes_list = tree_given.classes_.tolist()
-        dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
+        #tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
+        #tree_classes_list = tree_given.classes_.tolist()
+        #dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
         return_dict.update(dict_temp)
     return return_dict
 
@@ -72,7 +73,7 @@ def _buildtree(tree_given, start):
         tree_path = tree_path.append(tree_temp, ignore_index=True)
 
     tree_path = tree_path.sort_index(axis=0, ascending=False)
-    return tree_path, tree_given.tree_.value[start]
+    return tree_path
 
 
 # returns all leafs which are in the class(rule), if rule is None all rules for all classes are returned
