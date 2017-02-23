@@ -1,19 +1,19 @@
 import numpy as np
 import pandas as pd
-from sklearn import tree
 
 
-# Funktion zum Aufrufen uber python und ausgeben der Regeln
-def extract_rules(tree_given, features, dataset, target_dataset,
+def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=False,
                   regel=None):
     """
     This function returns the the rules of the Decision Tree.
     :param tree_given: decision Tree
     :param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features
     :param dataset: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)
-    :param target_dataset: dataset the decisionTree got (Target) (can be test or train data) (important: Type: Dataframe)
+    :param target_dataset: dataset the decisionTree got (Target) (can be test or train data)(important: Type: Dataframe)
+    :param show_test_dist: Only use if the dataset is the same dataset the tree is trained.
+            If this is the case 'test_class_dist' should be the same as 'class_dist' in the dictionary.
     :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules
-    are printed
+            are printed
     you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
     """
 
@@ -31,9 +31,10 @@ def extract_rules(tree_given, features, dataset, target_dataset,
         dist = _get_dist(tree_path, features, dataset, target_dataset, tree_given.classes_)
         dict_temp = _print_tree(tree_path, features, tree_given.classes_, dist, target_dataset)
         dict_temp = {count: dict_temp}
-        #tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
-        #tree_classes_list = tree_given.classes_.tolist()
-        #dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
+        if show_test_dist:
+            tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
+            tree_classes_list = tree_given.classes_.tolist()
+            dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
         return_dict.update(dict_temp)
     return return_dict
 
@@ -95,11 +96,11 @@ def _extract_leafs(tree_given, classes, rule):
 
 # returns the distribution of the rule  mit Panda!!!!
 def _get_dist(tree_path, feature_liste, ddata, tdata, classes):
-    dist = pd.DataFrame(columns=['elements', 'uniques']) #index= class
+    dist = pd.DataFrame(columns=['elements', 'uniques'])    # index= class
     data_ges = pd.concat([ddata, tdata], axis=1)
-    for i in range(tree_path.shape[0]):  # going through all features
+    for i in range(tree_path.shape[0]):     # going through all features
         if tree_path.true_false[i] == -5:
-            continue  # continue if the leaf is the last one so there is no feature with value
+            continue    # continue if the leaf is the last one so there is no feature with value
         if tree_path.true_false[i]:
             data_ges = data_ges[data_ges[feature_liste[tree_path.feature[i]]] <= tree_path.condition[
                 i]]  # delete all rows which not fullfill the criterion
@@ -128,7 +129,7 @@ def _print_tree(tree_path, feature, classes, dist, ttrain):
 
     dist_dict = {}
     for cl in classes:
-        dist_dict.update({cl: dist.loc[cl, 'elements']})
+        dist_dict.update({cl: float(dist.loc[cl, 'elements'])})
 
     # precision
     rule_class = classes[tree_path.feature[0]]
@@ -138,7 +139,7 @@ def _print_tree(tree_path, feature, classes, dist, ttrain):
         if i == str(rule_class):
             data_class = dist['elements'][i]
     if data_sum == 0:
-        precision = -1
+        precision = np.NaN
     else:
         precision = float(data_class) / float(data_sum)
 
@@ -149,7 +150,7 @@ def _print_tree(tree_path, feature, classes, dist, ttrain):
     for i in dist.index:
         if i == str(rule_class):
             if ttrain_regel == 0:
-                recall = -1
+                recall = np.NaN
             else:
                 recall = float(dist['elements'][i]) / float(ttrain_regel)
 
