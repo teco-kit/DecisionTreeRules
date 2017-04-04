@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from collections import deque
 
 
 def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=False,
@@ -155,3 +156,31 @@ def _print_tree(tree_path, feature, classes, dist, ttrain):
 
     return {'rule': rule, 'targetclass': classes[tree_path.feature[0]], 'class_dist': dist_dict, 'precision': precision,
             'recall': recall}
+
+
+def extract_elements_of_rule(data, rule):
+    """
+    This function returns the the rules of the Decision Tree.
+    :param data: dataset to search in (panda)
+    :param rule: list of strings, rule you want to use
+
+
+    you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
+    """
+
+    data_temp = data.copy()
+
+    tree = pd.DataFrame(columns=['feature', 'true_false', 'value'])
+    rule = deque(rule.split)
+    i = 0
+    while rule != deque([]):
+        tree.loc[i] = [str(rule.popleft()), str(rule.popleft()), float(rule.popleft())]
+        i += 1
+
+    for i in tree.index:  # going through all features
+        if tree.true_false[i] == '<=':
+            data_temp = data_temp[
+                data_temp[tree.feature[i]] <= tree.value[i]]  # delete all rows which not fullfill the criterion
+        else:
+            data_temp = data_temp[data_temp[tree.feature[i]] > tree.value[i]]
+    return data_temp
