@@ -111,9 +111,8 @@ def _get_dist(tree_path, feature_liste, ddata, tdata, classes):
         if dist_temp.shape[0] == 0:
             dist.loc[i] = [0, 0]
         else:
-            dist_temp = dist_temp.drop(tdata.name, 1)
-            uniq = dist_temp.drop_duplicates()  # deletes the duplicates to get the uniqes
-            dist.loc[i] = [dist_temp.shape[0], uniq.shape[0]]
+            dist.loc[i] = [dist_temp.shape[0], dist_temp.drop_duplicates().shape[0]]
+            # [number of elements, unique elements]
     return dist
 
 
