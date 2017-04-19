@@ -43,9 +43,9 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
 
 def extract_elements_of_rule(data, rule):
     """
-    This function returns the the rules of the Decision Tree.
+    This function returns the the rules of the Decision Tree as pandas.Dataframe.
     :param data: dataset to search in (panda)
-    :param rule: list of strings, rule you want to use
+    :param rule: string, rule you want to use
 
 
     you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
@@ -63,23 +63,30 @@ def extract_elements_of_rule(data, rule):
             data_temp = data_temp[data_temp[tree.feature[i]] > tree.condition[i]]
     return data_temp
 
-def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_variable_str=None,max_precision=None,min_recall=None):
+
+
+
+
+def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_feature_str=None,max_precision=None,min_recall=None):
     """
     This function returns the the rules of the Decision Tree.
-    :param target_variabel_name:
-    :param cut_variable_str:
+    The methode first filters for feature_strings, than precision and then recall values.
+    :param target_variabel_name: string of the target feature
+    :param cut_variable_str: feature name of the feature to cut.
     :param data: dataset to search in (panda)
     :param dict_of_rules_to_cut: list of strings, rule you want to use
+    :param max_precision: float value: if the precision is higher than this value the tree is cutted
+    :param min_recall: float value: if the recall is gets smaller than this value the tree is cutted before
 
 
     you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
     """
-    new_rules = {}
+    new_rules = dict_of_rules_to_cut.copy()
     for i in dict_of_rules_to_cut.keys():
         rule = dict_of_rules_to_cut[i]
         tree = _build_tree_out_of_string(rule['rule'])
-        if cut_variable_str is not None:
-            intersect = set(cut_variable_str).intersection(set(tree.feature.tolist()))
+        if cut_feature_str is not None:
+            intersect = set(cut_feature_str).intersection(set(tree.feature.tolist()))
             if not intersect:
                 new_rules.update({i: rule})
             for k in tree.index:
@@ -90,17 +97,31 @@ def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_variabl
                     dict_temp = _print_tree(new_tree, target_variabel_name, data_temp, dist)
                     new_rules.update({i: dict_temp})
                     break
+        rule = new_rules[i]
+        tree = _build_tree_out_of_string(rule['rule'])
+        if any(c is not None for c in [min_recall,max_precision]):
+            precision_recall = _calculate_precision(tree, data, target_variabel_name)
+            print(precision_recall)
         if max_precision is not None:
             if rule['precision'] > max_precision:
-                print('nicht implementiert')
-            else:
-                print('nicht implementiert')
+                for k in tree.index:
+                    if precision_recall.loc[k, 'precision'] > min_recall:
+                        data_temp = data.copy()
+                        new_tree = tree.drop(range(k+1, max(tree.index) + 1))
+                        dist = _get_dist(new_tree, data, target_variabel_name)
+                        dict_temp = _print_tree(new_tree, target_variabel_name, data_temp, dist)
+                        new_rules.update({i: dict_temp})
+                        break
+
         if min_recall is not None:
-            print('nicht implementiert')
-        else:
-            new_rules.update({i: rule})
-
-
+            for k in tree.index:
+                if precision_recall.loc[k, 'recall'] < min_recall:
+                    data_temp = data.copy()
+                    new_tree = tree.drop(range(k, max(tree.index) + 1))
+                    dist = _get_dist(new_tree, data, target_variabel_name)
+                    dict_temp = _print_tree(new_tree, target_variabel_name, data_temp, dist)
+                    new_rules.update({i: dict_temp})
+                    break
     new_rules_sorted = []
     result = {}
     for i in new_rules:
@@ -242,3 +263,48 @@ def _build_tree_out_of_string(rule):
         tree.loc[i] = [str(rule.popleft()), True if str(rule.popleft())== '<=' else False, float(rule.popleft())]
         i += 1
     return tree
+
+
+def _calculate_precision(tree, data, target_variabel_name):
+    pre_rec = pd.DataFrame(columns=['precision', 'recall'])
+    number_elemts = pd.DataFrame(columns=['elements'])
+    classes = data[target_variabel_name].unique()
+    ttrain = data[target_variabel_name]
+    data_ges = data.copy()
+    for i in range(tree.shape[0]):  # going through all features
+        if tree.true_false[i]:
+            data_ges = data_ges[data_ges[tree.feature[i]] <= tree.condition[
+                i]]  # delete all rows which not fullfill the criterion
+        else:
+            data_ges = data_ges[data_ges[tree.feature[i]] > tree.condition[i]]
+        for k in classes:  # going through all classes
+            dist_temp = data_ges[data_ges[target_variabel_name] == k]  # delete if the row is not in the class
+            if dist_temp.shape[0] == 0:
+                number_elemts.loc[k] = [0]
+            else:
+                number_elemts.loc[k] = [dist_temp.shape[0]]
+
+        # precision
+        # rule_class = classes[tree_path.feature[0]]
+        rule_class = number_elemts.elements.idxmax()
+        data_sum = number_elemts['elements'].sum()
+        data_class = np.NaN
+        for k in number_elemts.index:
+            if k == str(rule_class):
+                data_class = number_elemts['elements'][k]
+        if data_sum == 0:
+            precision = np.NaN
+        else:
+            precision = float(data_class) / float(data_sum)
+        ttrain_regel = len(
+            [j for j in ttrain if j == rule_class])
+        recall = 'Error'
+        for l in number_elemts.index:
+            if l == str(rule_class):
+                if ttrain_regel == 0:
+                    recall = np.NaN
+                else:
+                    recall = float(number_elemts['elements'][l]) / float(ttrain_regel)
+        pre_rec.loc[i,'precision'] = precision
+        pre_rec.loc[i,'recall'] = recall
+    return pre_rec

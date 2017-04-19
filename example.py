@@ -35,7 +35,7 @@ rules = tree_extract_rule.extract_rules(blf, liste,boston_data, boston_class)   
 print(rules)
 boston_data['target']=boston_class
 
-nrules=tree_extract_rule.cut_tree_rules(rules, boston_data,'target',cut_variable_str='NOX')
+nrules=tree_extract_rule.cut_tree_rules(rules, boston_data,'target',max_precision=0.8, min_recall=0.05)
 
 export_graphviz(blf,feature_names=liste, out_file='tree.dot')
 
