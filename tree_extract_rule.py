@@ -10,7 +10,7 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
     :param tree_given: decision Tree
     :param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features
     :param dataset: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)
-    :param target_dataset: dataset the decisionTree got (Target) (can be test or train data)(important: Type: Dataframe)
+    :param target_dataset: dataset the decisionTree got (Target) (can be test or train data)(important: Type: Series)
     :param show_test_dist: Only use if the dataset is the same dataset the tree is trained.
             If this is the case 'test_class_dist' should be the same as 'class_dist' in the dictionary.
     :param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules
@@ -19,10 +19,10 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
     """
 
     if not isinstance(dataset, pd.DataFrame):
-        raise Exception("dtrain has to be a Dataframe")
+        raise Exception("dataset has to be a Dataframe")
 
     if not isinstance(target_dataset, pd.Series):
-        raise Exception("ttrain has to be a Dataframe")
+        raise Exception("target_dataset has to be a Series")
 
     # features = dtrain.columns
     return_dict = {}
@@ -101,7 +101,6 @@ def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_feature
         tree = _build_tree_out_of_string(rule['rule'])
         if any(c is not None for c in [min_recall,max_precision]):
             precision_recall = _calculate_precision(tree, data, target_variabel_name)
-            print(precision_recall)
         if max_precision is not None:
             if rule['precision'] > max_precision:
                 for k in tree.index:
@@ -232,7 +231,7 @@ def _print_tree(tree_path, target_variabel_name, data_ges, dist):
     data_sum = dist['elements'].sum()
     data_class = np.NaN
     for i in dist.index:
-        if i == str(rule_class):
+        if str(i) == str(rule_class):
             data_class = dist['elements'][i]
     if data_sum == 0:
         precision = np.NaN
@@ -244,7 +243,7 @@ def _print_tree(tree_path, target_variabel_name, data_ges, dist):
         [i for i in ttrain if i == rule_class])  # deletes all rows, which are not of the wanted (rule) class
     recall = 'Error'
     for i in dist.index:
-        if i == str(rule_class):
+        if str(i) == str(rule_class):
             if ttrain_regel == 0:
                 recall = np.NaN
             else:

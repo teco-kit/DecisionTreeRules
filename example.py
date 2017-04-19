@@ -2,9 +2,7 @@ from sklearn.datasets import load_iris
 from sklearn.datasets import load_boston
 from sklearn import tree
 import pandas as pd
-from sklearn.model_selection import train_test_split
 import tree_extract_rule
-from sklearn.tree import export_graphviz
 
 
 boston = load_boston() #Load Dataset
@@ -29,15 +27,13 @@ blf = blf.fit(boston_data, boston_class)                        #train the tree
 
 rules = tree_extract_rule.extract_rules(blf, liste,boston_data, boston_class)   #extract rules
 
-#print(rules[0]['class_dist'])
-#print(rules[0]['test_class_dist'])#print example
-
 print(rules)
+
+#adding target column to dataset
 boston_data['target']=boston_class
 
-nrules=tree_extract_rule.cut_tree_rules(rules, boston_data,'target',max_precision=0.8, min_recall=0.05)
+cutted_rules=tree_extract_rule.cut_tree_rules(rules, boston_data,'target',cut_feature_str='LSTAT',max_precision=0.8, min_recall=0.05)
 
-export_graphviz(blf,feature_names=liste, out_file='tree.dot')
 
-for i in nrules.keys():
-    print(nrules[i])
+for i in cutted_rules.keys():
+    print(cutted_rules[i])
