@@ -25,7 +25,7 @@ This methode is to extract certain elements of a dataset (format: pandas.DataFra
 The methode returns a pandas.DataFrame with all data belonging to the rule.  
 
 The methode needs the following parameters:  
-    +param data: dataset to search in (panda)
+    +param data: dataset to search in (panda)  
     +param rule: string, rule you want to use
 
 ## cut_tree_rules
