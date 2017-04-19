@@ -41,6 +41,77 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
     return return_dict
 
 
+def extract_elements_of_rule(data, rule):
+    """
+    This function returns the the rules of the Decision Tree.
+    :param data: dataset to search in (panda)
+    :param rule: list of strings, rule you want to use
+
+
+    you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
+    """
+
+    data_temp = data.copy()
+
+    tree = _build_tree_out_of_string(rule)
+
+    for i in tree.index:  # going through all features
+        if tree.true_false[i]:
+            data_temp = data_temp[
+                data_temp[tree.feature[i]] <= tree.condition[i]]  # delete all rows which not fullfill the criterion
+        else:
+            data_temp = data_temp[data_temp[tree.feature[i]] > tree.condition[i]]
+    return data_temp
+
+def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_variable_str=None,max_precision=None,min_recall=None):
+    """
+    This function returns the the rules of the Decision Tree.
+    :param target_variabel_name:
+    :param cut_variable_str:
+    :param data: dataset to search in (panda)
+    :param dict_of_rules_to_cut: list of strings, rule you want to use
+
+
+    you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
+    """
+    new_rules = {}
+    for i in dict_of_rules_to_cut.keys():
+        rule = dict_of_rules_to_cut[i]
+        tree = _build_tree_out_of_string(rule['rule'])
+        if cut_variable_str is not None:
+            intersect = set(cut_variable_str).intersection(set(tree.feature.tolist()))
+            if not intersect:
+                new_rules.update({i: rule})
+            for k in tree.index:
+                if tree.loc[k, 'feature'] in list(intersect):
+                    data_temp = data.copy()
+                    new_tree = tree.drop(range(k, max(tree.index) + 1))
+                    dist = _get_dist(new_tree, data, target_variabel_name)
+                    dict_temp = _print_tree(new_tree, target_variabel_name, data_temp, dist)
+                    new_rules.update({i: dict_temp})
+                    break
+        if max_precision is not None:
+            if rule['precision'] > max_precision:
+                print('nicht implementiert')
+            else:
+                print('nicht implementiert')
+        if min_recall is not None:
+            print('nicht implementiert')
+        else:
+            new_rules.update({i: rule})
+
+
+    new_rules_sorted = []
+    result = {}
+    for i in new_rules:
+        if str(new_rules[i]) not in new_rules_sorted:
+            new_rules_sorted.append(str(new_rules[i]))
+
+    for idx, i in enumerate(new_rules_sorted):
+        result.update({idx: eval(i)})
+    return result
+
+
 # returns the parent leaf and the value if left or right bought is used
 def _parent(child_left, child_right, actual):
     if actual in child_left:
@@ -160,78 +231,6 @@ def _print_tree(tree_path, target_variabel_name, data_ges, dist):
 
     return {'rule': rule, 'targetclass': rule_class, 'class_dist': dist_dict, 'precision': precision,
             'recall': recall}
-
-
-def extract_elements_of_rule(data, rule):
-    """
-    This function returns the the rules of the Decision Tree.
-    :param data: dataset to search in (panda)
-    :param rule: list of strings, rule you want to use
-
-
-    you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
-    """
-
-    data_temp = data.copy()
-
-    tree = _build_tree_out_of_string(rule)
-
-    for i in tree.index:  # going through all features
-        if tree.true_false[i]:
-            data_temp = data_temp[
-                data_temp[tree.feature[i]] <= tree.condition[i]]  # delete all rows which not fullfill the criterion
-        else:
-            data_temp = data_temp[data_temp[tree.feature[i]] > tree.condition[i]]
-    return data_temp
-
-
-def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_variable_str=None,max_precision=None,min_recall=None):
-    """
-    This function returns the the rules of the Decision Tree.
-    :param target_variabel_name:
-    :param cut_variable_str:
-    :param data: dataset to search in (panda)
-    :param dict_of_rules_to_cut: list of strings, rule you want to use
-
-
-    you want to preserve. DONT USE THIS IF YOU ARE NOT SURE WHAT YOU ARE DOING.
-    """
-    new_rules = {}
-    for i in dict_of_rules_to_cut.keys():
-        rule = dict_of_rules_to_cut[i]
-        tree = _build_tree_out_of_string(rule['rule'])
-        if cut_variable_str is not None:
-            intersect = set(cut_variable_str).intersection(set(tree.feature.tolist()))
-            if not intersect:
-                new_rules.update({i: rule})
-            for k in tree.index:
-                if tree.loc[k, 'feature'] in list(intersect):
-                    data_temp = data.copy()
-                    new_tree = tree.drop(range(k, max(tree.index) + 1))
-                    dist = _get_dist(new_tree, data, target_variabel_name)
-                    dict_temp = _print_tree(new_tree, target_variabel_name, data_temp, dist)
-                    new_rules.update({i: dict_temp})
-                    break
-        if max_precision is not None:
-            if rule['precision'] > max_precision:
-                print('nicht implementiert')
-            else:
-                print('nicht implementiert')
-        if min_recall is not None:
-            print('nicht implementiert')
-        else:
-            new_rules.update({i: rule})
-
-
-    new_rules_sorted = []
-    result = {}
-    for i in new_rules:
-        if str(new_rules[i]) not in new_rules_sorted:
-            new_rules_sorted.append(str(new_rules[i]))
-
-    for idx, i in enumerate(new_rules_sorted):
-        result.update({idx: eval(i)})
-    return result
 
 
 def _build_tree_out_of_string(rule):
