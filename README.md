@@ -1,6 +1,9 @@
 # DecisionTreeRules
 This modules are made to get and modify the tree rules out of a decision tree from sklearn.
-There are examples how to use in the file: example.py
+There are examples how to use in the file: example.py, simple_example.py
+
+In the simple example there is only a short introduction how to use the tree_extract_rule.py
+
 
 ## extract_rules
 This methode is to extract the rules out of a decision tree. It is possible to calculate the precision and recall for other Dataset then the training dataset.
@@ -17,9 +20,39 @@ The methode needs the following parameters:
     +param show_test_dist: Only use if the dataset is the same dataset the tree is trained. If this is the case 'test_class_dist' should be the same as 'class_dist' in the dictionary.  
     +param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules are printed  
 
-		
-	
-		
+example code:
+    from sklearn.datasets import load_iris
+    from sklearn import tree
+    import tree_extract_rule
+    import pandas as pd
+    
+    irisdata = load_iris()
+    
+    
+    iristree = tree.DecisionTreeClassifier()
+    iristree = iristree.fit(irisdata.data, irisdata.target)
+    
+    #the data is not a panda Dataframe, thats why convert
+    iris_data_pd = pd.DataFrame(irisdata.data)
+    iris_target_pd = pd.Series(irisdata.target, name='target')
+    
+    #need featurenames:
+    liste = iris_data_pd.columns
+    
+    #extract rules:
+    rules=tree_extract_rule.extract_rules(iristree, liste, iris_data_pd, iris_target_pd)
+    
+    rules = pd.DataFrame.from_dict(rules)
+    for i in rules.keys():
+       print('Rule: '+str(i))
+       print(rules[i])
+       print('\n')
+
+The module gives the following dictionary back:
+    {0: {'rule': 'If RM <= 6.54549980164\nIf DIS <= 1.33920001984\nIf LSTAT <= 17.7350006104\n', 'targetclass': 'high', 'class_dist': {'low': 0.0, 'high': 4.0}, 'precision': 1.0, 'recall': 0.03225806451612903}, 1: {'rule':....
+
+
+
 ## extract_elements_of_rulebelo
 This methode is to extract certain elements of a dataset (format: pandas.DataFrame) belonging to a given rule.  
 The methode returns a pandas.DataFrame with all data belonging to the rule.  

@@ -20,6 +20,7 @@ liste = iris_data_pd.columns
 rules=tree_extract_rule.extract_rules(iristree, liste, iris_data_pd, iris_target_pd)
 
 rules = pd.DataFrame.from_dict(rules)
+print(rules)
 for i in rules.keys():
     print('Rule: '+str(i))
     print(rules[i])
