@@ -64,10 +64,8 @@ def extract_elements_of_rule(data, rule):
     return data_temp
 
 
-
-
-
-def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_feature_str=None,max_precision=None,min_recall=None):
+def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_feature_str=None, max_precision=None,
+                   min_recall=None):
     """
     This function returns the the rules of the Decision Tree.
     The methode first filters for feature_strings, than precision and then recall values.
@@ -99,14 +97,14 @@ def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_feature
                     break
         rule = new_rules[i]
         tree = _build_tree_out_of_string(rule['rule'])
-        if any(c is not None for c in [min_recall,max_precision]):
+        if any(c is not None for c in [min_recall, max_precision]):
             precision_recall = _calculate_precision(tree, data, target_variabel_name)
         if max_precision is not None:
             if rule['precision'] > max_precision:
                 for k in tree.index:
                     if precision_recall.loc[k, 'precision'] > min_recall:
                         data_temp = data.copy()
-                        new_tree = tree.drop(range(k+1, max(tree.index) + 1))
+                        new_tree = tree.drop(range(k + 1, max(tree.index) + 1))
                         dist = _get_dist(new_tree, data, target_variabel_name)
                         dict_temp = _print_tree(new_tree, target_variabel_name, data_temp, dist)
                         new_rules.update({i: dict_temp})
@@ -259,7 +257,7 @@ def _build_tree_out_of_string(rule):
     i = 0
     while rule != deque([]):
         rule.popleft()
-        tree.loc[i] = [str(rule.popleft()), True if str(rule.popleft())== '<=' else False, float(rule.popleft())]
+        tree.loc[i] = [str(rule.popleft()), True if str(rule.popleft()) == '<=' else False, float(rule.popleft())]
         i += 1
     return tree
 
@@ -304,6 +302,6 @@ def _calculate_precision(tree, data, target_variabel_name):
                     recall = np.NaN
                 else:
                     recall = float(number_elemts['elements'][l]) / float(ttrain_regel)
-        pre_rec.loc[i,'precision'] = precision
-        pre_rec.loc[i,'recall'] = recall
+        pre_rec.loc[i, 'precision'] = precision
+        pre_rec.loc[i, 'recall'] = recall
     return pre_rec

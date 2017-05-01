@@ -29,6 +29,10 @@ print(rules)
 # adding target column to dataset
 boston_data['target'] = boston_class
 
+#get elemnts of dataset of one certain rule:
+elements = tree_extract_rule.extract_elements_of_rule(boston_data, 'If RM <= 6.54549980164\nIf DIS <= 1.33920001984\nIf LSTAT > 17.7350006104\n')
+print(elements)
+
 # cut rules with 'LSTAT' in the variable and max_precision of 0.8 and min_recall of 0.05
 cutted_rules = tree_extract_rule.cut_tree_rules(rules, boston_data, 'target', cut_feature_str='LSTAT',
                                                 max_precision=0.8, min_recall=0.05)
