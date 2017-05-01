@@ -9,16 +9,16 @@ The example.py uses the boston dataset with the following tree.
 
 ## extract_rules
 This methode is to extract the rules out of a decision tree. It is possible to calculate the precision and recall for other Dataset then the training dataset.
-Return value: dictionary of rules with precision and recall in related to the used Dataset.
+Return value: dictionary of rules with precision and recall in related to the used Dataset. The rules in the dictionary have the key 0...n. n is the number of rules exist for the tree.
 
 The methode needs the following parameters:  
 
-*param tree_given: decision Tree  
-*param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features  
-*param dataset: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)  
-*param target_dataset: dataset the decisionTree got (Target) (can be test or train data)(important: Type: Dataframe)  
-*param show_test_dist: Only use if the dataset is the same dataset the tree is trained. If this is the case 'test_class_dist' should be the same as 'class_dist' in the dictionary.  
-*param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules are printed  
+* param tree_given: decision Tree  
+* param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features  
+* param dataset: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)  
+* param target_dataset: dataset the decisionTree got (Target) (can be test or train data)(important: Type: Dataframe)  
+* param show_test_dist: Only use if the dataset is the same dataset the tree is trained. If this is the case 'test_class_dist' should be the same as 'class_dist' in the dictionary.  
+* param regel: Name of class on which the rules point (only rules that point to special class). if None: all rules are printed  
 
 example code:  
     
@@ -64,8 +64,8 @@ The methode returns a pandas.DataFrame with all data belonging to the rule.
 
 The methode needs the following parameters:  
 
-*param data: dataset to search in (panda)  
-*param rule: string, rule you want to use  
+* param data: dataset to search in (panda)  
+* param rule: string, rule you want to use  
 
 
 example code: 
@@ -99,12 +99,21 @@ The methode returns the type of dictionary as the extract_rules methode.
 
 It needs the following paramters:  
 
-*param target_variabel_name: string of the target feature  
-*param cut_feature_str: feature name of the feature to cut.  
-*param data: dataset to search in (panda)  
-*param dict_of_rules_to_cut: list of strings, rule you want to use  
-*param max_precision: float value: if the precision is higher than this value the tree is cutted  
-*param min_recall: float value: if the recall is gets smaller than this value the tree is cutted before  
+* param target_variabel_name: string of the target feature  
+* param cut_feature_str: feature name of the feature to cut.  
+* param data: dataset to search in (panda)  
+* param dict_of_rules_to_cut: list of strings, rule you want to use  
+* param max_precision: float value: if the precision is higher than this value the tree is cutted  
+* param min_recall: float value: if the recall is gets smaller than this value the tree is cutted before  
+
+example code:
+
+    # cut rules with 'LSTAT' in the variable and max_precision of 0.8 and min_recall of 0.05
+    cutted_rules = tree_extract_rule.cut_tree_rules(rules, boston_data, 'target', cut_feature_str='LSTAT',
+                                                max_precision=0.8, min_recall=0.05)
+
+The rules are cutted if the feature name contains 'cut_feature_str' or if the precision gets the second time higher than 'max_precision' or the recall gehts higher than 'min_recall'. The rules are than as short as possible for a minimum recall and a maximum precision.   
+The return value is a dictionary of rules. 
     
 ### Questions or annotations?
 Please contact: gregor.schindler@student.kit.edu
