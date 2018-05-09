@@ -15,16 +15,21 @@ for idx, i in enumerate(boston_target):
     if i > 25:
         boston_class = boston_class.append(pd.Series(['high'], index=[idx]))
 
+
+
 boston_class.name = 'target'  # Dataserie with classes
 boston_data = pd.DataFrame(boston.data, columns=boston.feature_names)  # create DataFrame out of Dataset
 
 liste = boston_data.columns  # read the column names for rule_extraction
-blf = tree.DecisionTreeClassifier()  # create the tree
+blf = tree.DecisionTreeClassifier()  # create the tree class_weight='balanced'
 blf = blf.fit(boston_data, boston_class)  # train the tree
 
-rules = tree_extract_rule.extract_rules(blf, liste, boston_data, boston_class)  # extract rules
+rules = tree_extract_rule.extract_rules(blf, liste, boston_data, boston_class)  # extract rules ,target_class='high'
 
-print(rules)
+
+r=pd.DataFrame.from_dict(rules)
+print(r)
+
 
 # adding target column to dataset
 boston_data['target'] = boston_class
@@ -36,6 +41,7 @@ print(elements)
 # cut rules with 'LSTAT' in the variable and max_precision of 0.8 and min_recall of 0.05
 cutted_rules = tree_extract_rule.cut_tree_rules(rules, boston_data, 'target', cut_feature_str='LSTAT',
                                                 max_precision=0.8, min_recall=0.05)
+
 
 for i in cutted_rules.keys():
     print(cutted_rules[i])
