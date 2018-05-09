@@ -47,7 +47,7 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
             reg_tree = False
         dict_temp = _print_tree(tree_path, target_dataset.name, data_ges, dist, leaf_class, reg_tree)
         dict_temp = {count: dict_temp}
-        if show_test_dist:
+        if show_test_dist:  #test distribution is the one the tree saves for the trained dataset, it is calculated new in case the dataset is not the traindataset
             tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
             tree_classes_list = tree_given.classes_.tolist()
             dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
@@ -113,6 +113,7 @@ def cut_tree_rules(dict_of_rules_to_cut, data, target_variabel_name, cut_feature
                     break
         rule = new_rules[i]
         tree = _build_tree_out_of_string(rule['rule'])
+        precision_recall = None
         if any(c is not None for c in [min_recall, max_precision]):
             precision_recall = _calculate_precision(tree, data, target_variabel_name, weight_classes)
         if max_precision is not None:
