@@ -28,9 +28,17 @@ y = pd.Series(y)
 
 # extract rule
 rules = tree_extract_rule.extract_rules(regr_1, X.columns, X, y)
-# print rule
+
 r = pd.DataFrame.from_dict(rules)
 print(r)
+
+rule1 = rules[0]['rule']   #extract rule
+print(rule1)
+X1 = X.copy()       #copy X data and add y
+X1['target'] = y
+extract_elements = tree_extract_rule.extract_elements_of_rule(X1, rule1)  # extract the data
+print(extract_elements)
+print(extract_elements.apply(lambda x: [x.mean(),x.std()], axis=0)) # calculate the mean and std on the variables of the Dataset. if necessary the
 
 # Plot the results
 plt.figure()

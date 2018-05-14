@@ -10,6 +10,9 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
     Caution: multioutput problems are not included yet
     :param tree_given: decision Tree
     :param features: please use 'features=dtrain.columns' directly before training the tree and use the list as features
+                Reasen: if a other dataset with different column order is used the result would be wrong if the feature
+                order is not the same as in the train dataset. Thus the feature order should always have the same order
+                than the train dataset.
     :param dataset: dataset the decisionTree got (Data) (can be test or train data) (important: Type: Dataframe)
     :param target_dataset: dataset the decisionTree got (Target) (can be test or train data)(important: Type: Series)
     :param show_test_dist: Only use if the dataset is the same dataset the tree is trained.
@@ -29,7 +32,8 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
     if target_dataset.name is None:
         target_dataset.name = 'target'
 
-    weight = tree_given.class_weight
+    weight = tree_given.class_weight  # if tree is uses weigths they are red here
+    print(tree_given.class_weight)
     if weight is 'balanced':
         weight = (target_dataset.value_counts().sum() / (2 * target_dataset.value_counts())).to_dict()
     # features = dtrain.columns
@@ -39,7 +43,7 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
     for count, leaf in enumerate(list_leaf):
         tree_path = _buildtree(tree_given, leaf, features)
         dist = _get_dist(tree_path, data_ges, target_dataset.name, weight)
-        if tree_given.classes_ is None:     #recognizes if regressor is DecisionTree or RegressionTree
+        if tree_given.classes_ is None:  # recognizes if regressor is DecisionTree or RegressionTree
             leaf_class = tree_given.tree_.value[leaf][0]
             reg_tree = True
         else:
@@ -47,7 +51,7 @@ def extract_rules(tree_given, features, dataset, target_dataset, show_test_dist=
             reg_tree = False
         dict_temp = _print_tree(tree_path, target_dataset.name, data_ges, dist, leaf_class, reg_tree)
         dict_temp = {count: dict_temp}
-        if show_test_dist:  #test distribution is the one the tree saves for the trained dataset, it is calculated new in case the dataset is not the traindataset
+        if show_test_dist:  # test distribution is the one the tree saves for the trained dataset, it is calculated new in case the dataset is not the traindataset
             tree_dist_train = tree_given.tree_.value[leaf].tolist()  # zur ueberpruefung anschalten
             tree_classes_list = tree_given.classes_.tolist()
             dict_temp[count]['test_class_dist'] = dict(zip(tree_classes_list, *tree_dist_train))
@@ -66,9 +70,14 @@ def extract_elements_of_rule(data, rule):
     """
 
     target_elements = data.copy()
-
+    print(target_elements.columns)
+    if isinstance(target_elements.columns,
+                  pd.RangeIndex):  # if the dataset has no columnnames cast the numbers to strings
+        target_elements.columns = [str(i) for i in target_elements.columns]
+    if isinstance(target_elements.columns,
+                  object):
+        target_elements.columns = [str(i) for i in target_elements.columns]
     tree = _build_tree_out_of_string(rule)
-
     for i in tree.index:  # going through all features
         if tree.true_false[i]:
             target_elements = target_elements[
@@ -228,7 +237,7 @@ def _get_dist(tree_path, data_ges, target_variabel_name, weight=None):
         if dist_temp.shape[0] == 0:
             dist.loc[i] = [0, 0]
         else:
-            dist.loc[i] = [dist_temp.shape[0]*weight[i], dist_temp.drop_duplicates().shape[0]*weight[i]]
+            dist.loc[i] = [dist_temp.shape[0] * weight[i], dist_temp.drop_duplicates().shape[0] * weight[i]]
             # [number of elements, unique elements]
     return dist
 
@@ -236,7 +245,8 @@ def _get_dist(tree_path, data_ges, target_variabel_name, weight=None):
 # returns a string of the rule and distribution
 def _print_tree(tree_path, target_variabel_name, data_ges, dist, leaf_class=None, reg_tree=False):
     if leaf_class is None:
-        leaf_class = np.argmax(dist.elements)
+        dist['elements'] = dist['elements'].apply(pd.to_numeric, errors='coerce')
+        leaf_class = dist.elements.idxmax()
 
     rule = []
     classes = data_ges[target_variabel_name].unique()
@@ -265,10 +275,9 @@ def _print_tree(tree_path, target_variabel_name, data_ges, dist, leaf_class=None
             precision = np.NaN
         else:
             precision = float(data_class) / float(data_sum)
-
         # recall
-        ttrain_regel = len(
-            [i for i in ttrain if i == leaf_class])  # deletes all rows, which are not of the wanted (rule) class
+        ttrain_regel = len([i for i in ttrain if i == leaf_class])  # deletes all rows, which are not of the wanted
+        #  (rule) class
         recall = 'Error'
         for i in dist.index:
             if str(i) == str(leaf_class):
@@ -295,6 +304,8 @@ def _calculate_precision(tree, data, target_variabel_name, weight_classes):
     pre_rec = pd.DataFrame(columns=['precision', 'recall'])
     number_elemts = pd.DataFrame(columns=['elements'])
     classes = data[target_variabel_name].unique()
+    if weight_classes is None:
+        weight_classes = {k: 1 for k in classes}
     ttrain = data[target_variabel_name]
     data_ges = data.copy()
     for i in range(tree.shape[0]):  # going through all features
@@ -308,10 +319,11 @@ def _calculate_precision(tree, data, target_variabel_name, weight_classes):
             if dist_temp.shape[0] == 0:
                 number_elemts.loc[k] = [0]
             else:
-                number_elemts.loc[k] = [dist_temp.shape[0]*weight_classes[k]]
+                number_elemts.loc[k] = [dist_temp.shape[0] * weight_classes[k]]
 
         # precision
-        rule_class = number_elemts.elements.idxmax()
+        number_elemts['elements'] = number_elemts['elements'].apply(pd.to_numeric, errors='coerce')
+        rule_class = number_elemts['elements'].idxmax()
         data_sum = number_elemts['elements'].sum()
         data_class = np.NaN
         for k in number_elemts.index:

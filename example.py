@@ -37,7 +37,7 @@ print(elements)
 
 # cut rules with 'LSTAT' in the variable and max_precision of 0.8 and min_recall of 0.05
 cutted_rules = tree_extract_rule.cut_tree_rules(rules, boston_data, 'target', cut_feature_str='LSTAT',
-                                                max_precision=0.8, min_recall=0.05)
+                                               max_precision=0.8, min_recall=0.05)
 
 for i in cutted_rules.keys():
     print(cutted_rules[i])
